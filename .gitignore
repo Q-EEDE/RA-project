@@ -1,0 +1,27 @@
+# Eclipse / e2 studio workspace metadata
+.metadata/
+
+# Build outputs
+Debug/
+*/Debug/
+
+# UART/JPEG debug captures generated during testing
+*/tools/jpeg_uart_dump/logs/*
+!*/tools/jpeg_uart_dump/logs/.gitkeep
+*/tools/jpeg_uart_dump/output/*
+!*/tools/jpeg_uart_dump/output/.gitkeep
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
+.lock
+.lock_info
+
+# Packaged backups / generated archives
+*.zip
+
+# OS/editor files
+Thumbs.db
+Desktop.ini
+.DS_Store
