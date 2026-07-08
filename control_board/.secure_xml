@@ -91,6 +91,7 @@
       <configSetting altId="p107.gpio_mode.gpio_mode_peripheral" configurationId="p107.gpio_mode"/>
       <configSetting altId="p108.gpio_mode.gpio_mode_peripheral" configurationId="p108.gpio_mode"/>
       <configSetting altId="p109.gpio_mode.gpio_mode_peripheral" configurationId="p109.gpio_mode"/>
+      <configSetting altId="p110.gpio_mode.gpio_mode_peripheral" configurationId="p110.gpio_mode"/>
       <configSetting altId="p111.gpio_mode.gpio_mode_peripheral" configurationId="p111.gpio_mode"/>
       <configSetting altId="p113.gpio_mode.gpio_mode_peripheral" configurationId="p113.gpio_mode"/>
       <configSetting altId="p115.gpio_mode.gpio_mode_peripheral" configurationId="p115.gpio_mode"/>
@@ -103,11 +104,25 @@
       <configSetting altId="p500.gpio_mode.gpio_mode_out.low" configurationId="p500.gpio_mode"/>
       <configSetting altId="p501.output.low" configurationId="p501"/>
       <configSetting altId="p501.gpio_mode.gpio_mode_out.low" configurationId="p501.gpio_mode"/>
+      <configSetting altId="p502.input" configurationId="p502"/>
+      <configSetting altId="p502.gpio_mode.gpio_mode_in" configurationId="p502.gpio_mode"/>
+      <configSetting altId="p502.gpio_pupd.gpio_pupd_ip_up" configurationId="p502.gpio_pupd"/>
+      <configSetting altId="p503.input" configurationId="p503"/>
+      <configSetting altId="p503.gpio_mode.gpio_mode_in" configurationId="p503.gpio_mode"/>
+      <configSetting altId="p503.gpio_pupd.gpio_pupd_ip_up" configurationId="p503.gpio_pupd"/>
+      <configSetting altId="p504.input" configurationId="p504"/>
+      <configSetting altId="p504.gpio_mode.gpio_mode_in" configurationId="p504.gpio_mode"/>
+      <configSetting altId="p504.gpio_pupd.gpio_pupd_ip_up" configurationId="p504.gpio_pupd"/>
       <configSetting altId="p600.input" configurationId="p600"/>
       <configSetting altId="p600.gpio_mode.gpio_mode_in" configurationId="p600.gpio_mode"/>
+      <configSetting altId="p600.gpio_pupd.gpio_pupd_ip_up" configurationId="p600.gpio_pupd"/>
       <configSetting altId="p601.input" configurationId="p601"/>
       <configSetting altId="p601.gpio_mode.gpio_mode_in" configurationId="p601.gpio_mode"/>
+      <configSetting altId="p601.gpio_pupd.gpio_pupd_ip_up" configurationId="p601.gpio_pupd"/>
+      <configSetting altId="p602.gpio_mode.gpio_mode_peripheral" configurationId="p602.gpio_mode"/>
       <configSetting altId="p609.gpio_mode.gpio_mode_peripheral" configurationId="p609.gpio_mode"/>
+      <configSetting altId="sci9.rxd.p110" configurationId="sci9.rxd" isUsedByDriver="true" peripheral="SCI9"/>
+      <configSetting altId="sci9.txd.p602" configurationId="sci9.txd" isUsedByDriver="true" peripheral="SCI9"/>
     </pincfg>
   </raPinConfiguration>
 </raConfiguration>

@@ -10,11 +10,11 @@
     <stringAttribute key="ilg.gnumcueclipse.debug.gdbjtag.pyocd.gdbClientOtherOptions" value=""/>
     <stringAttribute key="ilg.gnumcueclipse.debug.gdbjtag.pyocd.gdbServerBoardId" value="0001A0000001"/>
     <stringAttribute key="ilg.gnumcueclipse.debug.gdbjtag.pyocd.gdbServerBoardName" value=""/>
-    <intAttribute key="ilg.gnumcueclipse.debug.gdbjtag.pyocd.gdbServerBusSpeed" value="1000000"/>
+    <intAttribute key="ilg.gnumcueclipse.debug.gdbjtag.pyocd.gdbServerBusSpeed" value="100000"/>
     <intAttribute key="ilg.gnumcueclipse.debug.gdbjtag.pyocd.gdbServerConnectMode" value="0"/>
     <stringAttribute key="ilg.gnumcueclipse.debug.gdbjtag.pyocd.gdbServerConnectionAddress" value=""/>
     <booleanAttribute key="ilg.gnumcueclipse.debug.gdbjtag.pyocd.gdbServerEnableSemihosting" value="true"/>
-    <stringAttribute key="ilg.gnumcueclipse.debug.gdbjtag.pyocd.gdbServerExecutable" value="C:\Users\EEDE1\AppData\Local\Programs\Python\Python310\Scripts\pyocd.exe"/>
+    <stringAttribute key="ilg.gnumcueclipse.debug.gdbjtag.pyocd.gdbServerExecutable" value="C:\Python310\Scripts\pyocd.exe"/>
     <intAttribute key="ilg.gnumcueclipse.debug.gdbjtag.pyocd.gdbServerFlashMode" value="2"/>
     <intAttribute key="ilg.gnumcueclipse.debug.gdbjtag.pyocd.gdbServerGdbPortNumber" value="3333"/>
     <booleanAttribute key="ilg.gnumcueclipse.debug.gdbjtag.pyocd.gdbServerHaltAtHardFault" value="true"/>
@@ -22,7 +22,7 @@
     <stringAttribute key="ilg.gnumcueclipse.debug.gdbjtag.pyocd.gdbServerOther" value="--pack D:\MDK_Device_Packs_v6.4.0\Renesas.RA_DFP.6.4.0.pack"/>
     <booleanAttribute key="ilg.gnumcueclipse.debug.gdbjtag.pyocd.gdbServerOverrideTarget" value="true"/>
     <intAttribute key="ilg.gnumcueclipse.debug.gdbjtag.pyocd.gdbServerResetType" value="0"/>
-    <booleanAttribute key="ilg.gnumcueclipse.debug.gdbjtag.pyocd.gdbServerSmartFlash" value="true"/>
+    <booleanAttribute key="ilg.gnumcueclipse.debug.gdbjtag.pyocd.gdbServerSmartFlash" value="false"/>
     <booleanAttribute key="ilg.gnumcueclipse.debug.gdbjtag.pyocd.gdbServerStepIntoInterrutps" value="false"/>
     <stringAttribute key="ilg.gnumcueclipse.debug.gdbjtag.pyocd.gdbServerTargetName" value="R7FA6M5BF"/>
     <intAttribute key="ilg.gnumcueclipse.debug.gdbjtag.pyocd.gdbServerTelnetPortNumber" value="4444"/>
@@ -35,7 +35,7 @@
     <stringAttribute key="org.eclipse.cdt.debug.gdbjtag.core.imageOffset" value=""/>
     <stringAttribute key="org.eclipse.cdt.debug.gdbjtag.core.ipAddress" value="localhost"/>
     <stringAttribute key="org.eclipse.cdt.debug.gdbjtag.core.jtagDevice" value="GNU MCU PyOCD"/>
-    <booleanAttribute key="org.eclipse.cdt.debug.gdbjtag.core.loadImage" value="true"/>
+    <booleanAttribute key="org.eclipse.cdt.debug.gdbjtag.core.loadImage" value="false"/>
     <booleanAttribute key="org.eclipse.cdt.debug.gdbjtag.core.loadSymbols" value="true"/>
     <stringAttribute key="org.eclipse.cdt.debug.gdbjtag.core.pcRegister" value=""/>
     <intAttribute key="org.eclipse.cdt.debug.gdbjtag.core.portNumber" value="3333"/>

@@ -5,7 +5,9 @@
 
 #define APP_IMAGE_WIDTH                 (96U)
 #define APP_IMAGE_HEIGHT                (96U)
-#define APP_IMAGE_SIZE                  (APP_IMAGE_WIDTH * APP_IMAGE_HEIGHT)
+#define APP_IMAGE_CHANNELS              (3U)
+#define APP_IMAGE_PIXEL_COUNT           (APP_IMAGE_WIDTH * APP_IMAGE_HEIGHT)
+#define APP_IMAGE_SIZE                  (APP_IMAGE_PIXEL_COUNT * APP_IMAGE_CHANNELS)
 
 #define APP_CAMERA_FRAME_HEADER0        (0xA5U)
 #define APP_CAMERA_FRAME_HEADER1        (0x5AU)
@@ -24,6 +26,22 @@
 #define APP_USE_FSP_SPI_CAMERA          (1U)
 #define APP_USE_FSP_I2C_CAMERA          (1U)
 #define APP_USE_FSP_UART_CONTROL        (1U)
+
+/* Host link UART: connects to the main controller board.
+ * Set to 1U after FSP has been configured with a second SCI channel
+ * named g_uart_host. Keep at 0U if FSP has not been updated yet. */
+#define APP_USE_FSP_UART_HOST           (1U)
+#define APP_HOST_LINK_TX_TIMEOUT_MS     (100U)
+#define APP_HOST_LINK_RX_BUFFER_SIZE    (128U)
+#define APP_HOST_LINK_LINE_MAX_LEN      (64U)
+#define APP_HOST_LINK_POLL_MS           (5U)
+#define APP_HOST_LINK_RX_IRQ_DEBUG_ENABLED (0U)
+#define APP_HOST_LINK_RX_IRQ_LED_TOGGLE_ENABLED (0U)
+
+/* Host link 回环自测：把 P301 和 P302 用杜邦线短接，
+ * 推理板自己发自己收，用来验证 SCI2 TX/RX 都能工作。
+ * 验证完后改回 0U，避免影响正常使用。 */
+#define APP_HOST_LINK_LOOPBACK_TEST_ENABLED (0U)
 
 #define APP_FRUIT_SENSOR_GPIO_ENABLED   (0U)
 #define APP_FRUIT_SENSOR_ACTIVE_LOW     (1U)
@@ -45,6 +63,93 @@
 
 #define APP_BACKGROUND_THRESHOLD        (32U)
 #define APP_MIN_FRUIT_AREA              (400U)
+#define APP_USE_EAI_TRANSLATOR_INFERENCE (1U)
+
+/* Model output class order: A, B, C, UNKNOWN. */
+#define APP_INFERENCE_OUTPUT_CLASS_COUNT (4U)
+
+/* EAI output filter. Set APP_INFERENCE_OUTPUT_FILTER_ENABLED to 0U to disable it. */
+#define APP_INFERENCE_OUTPUT_FILTER_ENABLED (0U)
+#define APP_INFERENCE_MIN_SCORE         (0U)
+#define APP_INFERENCE_MIN_MARGIN        (0U)
+#define APP_INFERENCE_UNKNOWN_OUTPUT_ENABLED (0U)
+
+/* Rule classifier:
+ * A: mostly orange, little green, no obvious external black spot.
+ * B: green/yellow-green area or small external black spot.
+ * C: large external black/rotten area, including large brown/black rot near the stem.
+ * The central radius is ignored for normal dark-defect counting, then checked again with
+ * stricter brown/black-area rules so a normal stem is not counted as rot. */
+#define APP_RULE_CLASSIFIER_ENABLED     (1U)
+#define APP_RULE_MIN_FRUIT_PIXELS       (800U)
+#define APP_RULE_CENTER_IGNORE_RADIUS_PIXELS (14U)
+#define APP_RULE_CENTER_DEFECT_COMPONENT_PIXELS (24U)
+#define APP_RULE_CENTER_DEFECT_TOTAL_PIXELS (50U)
+#define APP_RULE_CENTER_DEFECT_MAX_COMPONENT_PIXELS (220U)
+
+#define APP_RULE_UNKNOWN_COLOR_RATIO_PERMILLE (80U)
+#define APP_RULE_A_ORANGE_RATIO_PERMILLE (780U)
+#define APP_RULE_A_STRONG_ORANGE_RATIO_PERMILLE (880U)
+#define APP_RULE_A_GREEN_SHADOW_ALLOW_PERMILLE (45U)
+#define APP_RULE_A_SHADOW_DEFECT_COMPONENT_MAX (320U)
+#define APP_RULE_A_SHADOW_DEFECT_TOTAL_MAX (320U)
+#define APP_RULE_B_GREEN_RATIO_PERMILLE  (30U)
+#define APP_RULE_B_STRONG_GREEN_RATIO_PERMILLE (18U)
+#define APP_RULE_B_DEFECT_RATIO_PERMILLE (55U)
+#define APP_RULE_B_DEFECT_COMPONENT_PIXELS (150U)
+#define APP_RULE_B_LARGE_SPOT_PIXELS    (260U)
+#define APP_RULE_B_SPECKLE_TOTAL_PIXELS (35U)
+#define APP_RULE_B_SPECKLE_COMPONENT_COUNT (10U)
+#define APP_RULE_C_DEFECT_RATIO_PERMILLE (80U)
+#define APP_RULE_C_DEFECT_COMPONENT_PIXELS (220U)
+#define APP_RULE_C_TOTAL_DEFECT_PIXELS  (360U)
+#define APP_RULE_C_LARGE_DEFECT_COMPONENT_PIXELS (520U)
+#define APP_RULE_C_SPECKLE_COMPONENT_MIN_PIXELS (1U)
+#define APP_RULE_C_SPECKLE_TOTAL_PIXELS (52U)
+#define APP_RULE_C_SPECKLE_COMPONENT_COUNT (16U)
+#define APP_RULE_C_SPECKLE_SPREAD_X_PIXELS (25U)
+#define APP_RULE_C_SPECKLE_SPREAD_Y_PIXELS (40U)
+#define APP_RULE_IGNORE_SMALL_SPOT_PIXELS (50U)
+
+#define APP_RULE_FRUIT_BRIGHTNESS_MIN   (60U)
+#define APP_RULE_FRUIT_BLUE_ALLOWANCE   (20U)
+#define APP_RULE_FRUIT_COLOR_DELTA      (5U)
+#define APP_RULE_ORANGE_R_MIN           (80U)
+#define APP_RULE_ORANGE_G_MIN           (45U)
+#define APP_RULE_ORANGE_R_OVER_G_MIN    (15U)
+#define APP_RULE_ORANGE_G_OVER_B_MIN    (8U)
+#define APP_RULE_GREEN_G_MIN            (50U)
+#define APP_RULE_GREEN_G_OVER_B_MIN     (8U)
+#define APP_RULE_GREEN_R_OVER_G_ALLOWANCE (38U)
+#define APP_RULE_STRONG_GREEN_G_MIN     (60U)
+#define APP_RULE_STRONG_GREEN_G_OVER_B_MIN (12U)
+#define APP_RULE_STRONG_GREEN_R_OVER_G_ALLOWANCE (20U)
+#define APP_RULE_BLACK_BRIGHTNESS_MAX   (190U)
+#define APP_RULE_BLACK_RGB_MAX          (95U)
+#define APP_RULE_BROWN_BRIGHTNESS_MAX   (260U)
+#define APP_RULE_BROWN_R_MAX            (130U)
+#define APP_RULE_BROWN_G_MAX            (110U)
+#define APP_RULE_BROWN_B_MAX            (90U)
+#define APP_RULE_BROWN_R_UNDER_G_ALLOWANCE (10U)
+#define APP_RULE_CENTER_DEFECT_BRIGHTNESS_MAX (360U)
+#define APP_RULE_CENTER_DEFECT_R_MAX    (170U)
+#define APP_RULE_CENTER_DEFECT_G_MAX    (150U)
+#define APP_RULE_CENTER_DEFECT_B_MAX    (130U)
+#define APP_RULE_CENTER_DEFECT_R_OVER_G_MIN (30U)
+#define APP_RULE_CENTER_DEFECT_R_OVER_B_MIN (10U)
+#define APP_RULE_CENTER_DEFECT_G_OVER_B_MIN (5U)
+#define APP_RULE_SPECKLE_EDGE_MARGIN_PIXELS (8U)
+#define APP_RULE_SPECKLE_LOCAL_RADIUS_PIXELS (2U)
+#define APP_RULE_SPECKLE_LOCAL_MIN_NEIGHBORS (12U)
+#define APP_RULE_SPECKLE_LOCAL_DELTA_GRAY (12U)
+#define APP_RULE_SPECKLE_GRAY_MAX        (170U)
+
+/* Fruit region extraction keeps fruit size visible while suppressing the background. */
+#define APP_FRUIT_REGION_EXTRACT_ENABLED (1U)
+#define APP_FRUIT_REGION_MIN_SEED_PIXELS (120U)
+#define APP_FRUIT_REGION_MARGIN_PIXELS  (5U)
+#define APP_FRUIT_REGION_CENTER_WINDOW_PIXELS (32U)
+#define APP_FRUIT_REGION_BACKGROUND_VALUE (0U)
 
 #define APP_ARDUCAM_I2C_ADDRESS         (0x30U)
 #define APP_ARDUCAM_CAPTURE_TIMEOUT_MS  (2000U)
@@ -57,14 +162,13 @@
 #define APP_ARDUCAM_CS_SETUP_US         (5U)
 #define APP_ARDUCAM_CS_HOLD_US          (5U)
 
-#define APP_CAPTURE_LOOP_TEST_ENABLED (1U)
+#define APP_CAPTURE_LOOP_TEST_ENABLED (0U)
 #define APP_CAPTURE_LOOP_TEST_TOTAL   (50U)
 #define APP_CAPTURE_LOOP_DELAY_MS     (500U)
 
 #define APP_BUTTON_CAPTURE_MODE_ENABLED (1U)
-#define APP_CAPTURE_BUTTON_GPIO_ENABLED (0U)
-/* Define APP_CAPTURE_BUTTON_PIN in this file after choosing the real key GPIO pin. */
-/* Example: #define APP_CAPTURE_BUTTON_PIN BSP_IO_PORT_xx_PIN_xx */
+#define APP_CAPTURE_BUTTON_GPIO_ENABLED (1U)
+#define APP_CAPTURE_BUTTON_PIN BSP_IO_PORT_00_PIN_00
 #define APP_CAPTURE_BUTTON_ACTIVE_LOW   (1U)
 #define APP_CAPTURE_BUTTON_PULLUP_ENABLED (1U)
 #define APP_CAPTURE_BUTTON_DEBOUNCE_MS  (30U)

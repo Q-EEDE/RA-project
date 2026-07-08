@@ -22,6 +22,23 @@ extern const uart_instance_t g_uart_control;
 static volatile bool g_control_uart_tx_complete;
 #endif
 
+#if APP_HAS_FSP_UART_HOST
+extern const uart_instance_t g_uart_host;
+#define APP_HOST_RX_BUFFER_SIZE    (APP_HOST_LINK_RX_BUFFER_SIZE)
+static volatile uint8_t g_host_rx_buffer[APP_HOST_RX_BUFFER_SIZE];
+static volatile uint16_t g_host_rx_write_index;
+static volatile uint16_t g_host_rx_read_index;
+static volatile bool g_host_uart_tx_complete;
+static volatile uint32_t g_host_rx_irq_count;
+static volatile uint8_t g_host_rx_last_byte;
+#if APP_HOST_LINK_RX_IRQ_LED_TOGGLE_ENABLED
+static volatile bool g_host_rx_led_high;
+#endif
+
+static bool app_host_ring_pop(uint8_t * p_byte);
+static void app_host_ring_push(uint8_t byte);
+#endif
+
 #if APP_HAS_FSP_SPI_CAMERA
 extern const spi_instance_t g_spi_camera;
 static volatile bool g_spi_transfer_complete;
@@ -37,7 +54,7 @@ static volatile bool g_i2c_transfer_complete;
 static volatile bool g_i2c_transfer_error;
 #endif
 
-#if APP_HAS_FSP_UART_CAMERA || APP_HAS_FSP_UART_CONTROL
+#if APP_HAS_FSP_UART_CAMERA || APP_HAS_FSP_UART_CONTROL || APP_HAS_FSP_UART_HOST
 static app_status_t app_uart_write_blocking(const uart_instance_t * p_uart,
                                             volatile bool * p_tx_complete,
                                             const uint8_t * p_data,
@@ -124,6 +141,25 @@ app_status_t app_board_init(void)
         return APP_STATUS_IO_ERROR;
     }
 #elif APP_USE_FSP_UART_CONTROL
+    status = APP_STATUS_NOT_CONFIGURED;
+#endif
+
+#if APP_HAS_FSP_UART_HOST
+    fsp_err_t err_host = g_uart_host.p_api->open(g_uart_host.p_ctrl, g_uart_host.p_cfg);
+
+    if (FSP_SUCCESS != err_host)
+    {
+        return APP_STATUS_IO_ERROR;
+    }
+
+    g_host_rx_write_index = 0U;
+    g_host_rx_read_index = 0U;
+    g_host_rx_irq_count = 0U;
+    g_host_rx_last_byte = 0U;
+#if APP_HOST_LINK_RX_IRQ_LED_TOGGLE_ENABLED
+    g_host_rx_led_high = false;
+#endif
+#elif APP_USE_FSP_UART_HOST
     status = APP_STATUS_NOT_CONFIGURED;
 #endif
 
@@ -322,6 +358,80 @@ app_status_t app_board_control_write(const uint8_t * p_data, uint32_t length, ui
     }
 
     return status;
+}
+
+app_status_t app_board_host_write(const uint8_t * p_data, uint32_t length, uint32_t timeout_ms)
+{
+    app_status_t status = APP_STATUS_INVALID_ARGUMENT;
+
+    if ((NULL != p_data) && (length > 0U))
+    {
+#if APP_HAS_FSP_UART_HOST
+        status = app_uart_write_blocking(&g_uart_host, &g_host_uart_tx_complete, p_data, length, timeout_ms);
+#else
+        (void) timeout_ms;
+        status = APP_STATUS_NOT_CONFIGURED;
+#endif
+    }
+
+    return status;
+}
+
+app_status_t app_board_host_read_byte(uint8_t * p_byte, uint32_t timeout_ms)
+{
+    app_status_t status = APP_STATUS_INVALID_ARGUMENT;
+
+    if (NULL != p_byte)
+    {
+#if APP_HAS_FSP_UART_HOST
+        uint32_t waited_ms = 0U;
+        status = APP_STATUS_TIMEOUT;
+
+        do
+        {
+            if (app_host_ring_pop(p_byte))
+            {
+                status = APP_STATUS_OK;
+                break;
+            }
+
+            app_board_delay_ms(1U);
+            waited_ms++;
+        } while (waited_ms < timeout_ms);
+#else
+        (void) timeout_ms;
+        status = APP_STATUS_NOT_CONFIGURED;
+#endif
+    }
+
+    return status;
+}
+
+bool app_board_host_has_byte(void)
+{
+#if APP_HAS_FSP_UART_HOST
+    return (g_host_rx_read_index != g_host_rx_write_index);
+#else
+    return false;
+#endif
+}
+
+uint32_t app_board_host_rx_irq_count(void)
+{
+#if APP_HAS_FSP_UART_HOST
+    return g_host_rx_irq_count;
+#else
+    return 0U;
+#endif
+}
+
+uint8_t app_board_host_rx_last_byte(void)
+{
+#if APP_HAS_FSP_UART_HOST
+    return g_host_rx_last_byte;
+#else
+    return 0U;
+#endif
 }
 
 app_status_t app_board_camera_cs_set(bool high)
@@ -734,6 +844,63 @@ void app_control_uart_callback(uart_callback_args_t * p_args)
 }
 #endif
 
+#if APP_HAS_FSP_UART_HOST
+void app_host_uart_callback(uart_callback_args_t * p_args)
+{
+    if (NULL != p_args)
+    {
+        if (UART_EVENT_RX_CHAR == p_args->event)
+        {
+            uint8_t rx_byte = (uint8_t) p_args->data;
+
+            app_host_ring_push(rx_byte);
+            g_host_rx_last_byte = rx_byte;
+            g_host_rx_irq_count++;
+
+#if APP_HOST_LINK_RX_IRQ_LED_TOGGLE_ENABLED && APP_DEBUG_LED_ENABLED
+            g_host_rx_led_high = !g_host_rx_led_high;
+            (void) g_ioport.p_api->pinWrite(g_ioport.p_ctrl,
+                                             APP_DEBUG_LED_PIN,
+                                             g_host_rx_led_high ? BSP_IO_LEVEL_HIGH : BSP_IO_LEVEL_LOW);
+#endif
+        }
+        else if (UART_EVENT_TX_COMPLETE == p_args->event)
+        {
+            g_host_uart_tx_complete = true;
+        }
+        else
+        {
+            /* Other UART events ignored. */
+        }
+    }
+}
+
+static bool app_host_ring_pop(uint8_t * p_byte)
+{
+    bool has_data = false;
+
+    if (g_host_rx_read_index != g_host_rx_write_index)
+    {
+        *p_byte = g_host_rx_buffer[g_host_rx_read_index];
+        g_host_rx_read_index = (uint16_t) ((g_host_rx_read_index + 1U) % APP_HOST_RX_BUFFER_SIZE);
+        has_data = true;
+    }
+
+    return has_data;
+}
+
+static void app_host_ring_push(uint8_t byte)
+{
+    uint16_t next_index = (uint16_t) ((g_host_rx_write_index + 1U) % APP_HOST_RX_BUFFER_SIZE);
+
+    if (next_index != g_host_rx_read_index)
+    {
+        g_host_rx_buffer[g_host_rx_write_index] = byte;
+        g_host_rx_write_index = next_index;
+    }
+}
+#endif
+
 #if APP_HAS_FSP_SPI_CAMERA
 void app_camera_spi_callback(spi_callback_args_t * p_args)
 {
@@ -769,7 +936,7 @@ void app_camera_i2c_callback(i2c_master_callback_args_t * p_args)
 }
 #endif
 
-#if APP_HAS_FSP_UART_CAMERA || APP_HAS_FSP_UART_CONTROL
+#if APP_HAS_FSP_UART_CAMERA || APP_HAS_FSP_UART_CONTROL || APP_HAS_FSP_UART_HOST
 static app_status_t app_uart_write_blocking(const uart_instance_t * p_uart,
                                             volatile bool * p_tx_complete,
                                             const uint8_t * p_data,

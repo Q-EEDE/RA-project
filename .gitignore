@@ -11,6 +11,29 @@ Debug/
 */tools/jpeg_uart_dump/output/*
 !*/tools/jpeg_uart_dump/output/.gitkeep
 
+# Local model training outputs
+*/tools/model_training/models/*
+!*/tools/model_training/models/.gitkeep
+trained_models/
+
+# Local datasets and review/debug images
+fruit_dataset/
+fruit_dataset_balanced/
+capture_logs/
+captured_from_ttl/
+current_check/
+review_sheets/
+roi_preview/
+rule_debug_captures/
+report_assets/
+
+# Local documents, extracted topics, and backups
+资料/
+备份/
+_topic_zip_extract/
+SESSION_SUMMARY_*.md
+write_test_root.txt
+
 # Logs and temporary files
 *.log
 *.tmp
@@ -20,6 +43,8 @@ Debug/
 
 # Packaged backups / generated archives
 *.zip
+*.rar
+competition_key_code_package*/
 
 # OS/editor files
 Thumbs.db

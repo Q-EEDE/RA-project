@@ -42,6 +42,7 @@ typedef struct
     fruit_grade_t grade;
     uint8_t score;
     const char * status;
+    uint8_t model_scores[APP_INFERENCE_OUTPUT_CLASS_COUNT];
 } fruit_result_t;
 
 const char * app_status_to_text(app_status_t status);

@@ -4,12 +4,23 @@
 #include <stdint.h>
 #include "bsp_api.h"
 #include "common_data.h"
+#include "r_sci_uart.h"
+#include "r_uart_api.h"
 #include "r_iic_master.h"
 #include "r_i2c_master_api.h"
 #include "r_spi.h"
-#include "r_sci_uart.h"
-#include "r_uart_api.h"
 FSP_HEADER
+/** UART on SCI Instance. */
+extern const uart_instance_t g_uart_host;
+
+/** Access the UART instance using these structures when calling API functions directly (::p_api is not used). */
+extern sci_uart_instance_ctrl_t g_uart_host_ctrl;
+extern const uart_cfg_t g_uart_host_cfg;
+extern const sci_uart_extended_cfg_t g_uart_host_cfg_extend;
+
+#ifndef app_host_uart_callback
+void app_host_uart_callback(uart_callback_args_t *p_args);
+#endif
 /* I2C Master on IIC Instance. */
 extern const i2c_master_instance_t g_i2c_camera;
 

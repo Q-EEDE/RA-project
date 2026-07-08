@@ -1,33 +1,46 @@
 #!/usr/bin/env python3
-"""Restore a JPEG file from RA6M5 UART $JPG hex dump logs."""
+"""Restore JPEG files from RA6M5 UART $JPG hex dump logs."""
 
 from __future__ import annotations
 
 import argparse
+import re
 from pathlib import Path
 
 
 DEFAULT_LOG = Path(__file__).resolve().parent / "logs" / "capture_log.txt.txt"
 DEFAULT_OUTPUT = Path(__file__).resolve().parent / "output" / "capture.jpg"
+DEFAULT_DATASET_DIR = Path(__file__).resolve().parents[3] / "fruit_dataset"
+LOG_SUFFIXES = {".txt", ".log"}
+CLASS_NAME_PATTERN = re.compile(r"^(?P<class>a|b|c|u|unk|unknown)[_-]?(?P<index>\d+)$", re.IGNORECASE)
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Restore capture.jpg from UART log lines like $JPG,DATA,<offset>,<hex>."
+        description="Restore JPEG files from UART log lines like $JPG,DATA,<offset>,<hex>."
     )
     parser.add_argument(
-        "log_file",
+        "input_path",
         type=Path,
         nargs="?",
         default=DEFAULT_LOG,
-        help="UART log text file.",
+        help="UART log text file or a directory containing logs.",
     )
     parser.add_argument(
         "output_file",
         type=Path,
         nargs="?",
         default=DEFAULT_OUTPUT,
-        help="Output JPEG path. Default: tools/jpeg_uart_dump/output/capture.jpg",
+        help=(
+            "Output JPEG path for single-file mode. If omitted and the log name is like "
+            "A001.txt, output is written to fruit_dataset/A/A001.jpg."
+        ),
+    )
+    parser.add_argument(
+        "--dataset-dir",
+        type=Path,
+        default=DEFAULT_DATASET_DIR,
+        help="Dataset root used for auto output. Default: ../../fruit_dataset from project root.",
     )
     return parser.parse_args()
 
@@ -134,19 +147,75 @@ def validate_jpeg(jpeg: bytes) -> None:
         raise ValueError("JPEG does not end with FF D9.")
 
 
-def main() -> None:
-    args = parse_args()
-    log_file = args.log_file
-    output_file = args.output_file
+def infer_dataset_output_file(log_file: Path, dataset_dir: Path) -> Path | None:
+    match = CLASS_NAME_PATTERN.match(log_file.stem)
 
-    if not log_file.exists():
-        raise SystemExit(f"Log file not found: {log_file}")
+    if match is None:
+        return None
 
+    class_name = match.group("class").lower()
+
+    if class_name in {"a", "b", "c"}:
+        class_dir = class_name.upper()
+    else:
+        class_dir = "unknown"
+
+    return dataset_dir / class_dir / f"{log_file.stem}.jpg"
+
+
+def iter_log_files(log_dir: Path) -> list[Path]:
+    return sorted(
+        path
+        for path in log_dir.iterdir()
+        if path.is_file() and path.suffix.lower() in LOG_SUFFIXES
+    )
+
+
+def restore_one(log_file: Path, output_file: Path) -> None:
     jpeg = restore_jpeg_from_log(log_file)
     output_file.parent.mkdir(parents=True, exist_ok=True)
     output_file.write_bytes(jpeg)
+    print(f"OK: {log_file.name} -> {output_file} ({len(jpeg)} bytes)")
 
-    print(f"OK: wrote {len(jpeg)} bytes to {output_file}")
+
+def restore_directory(log_dir: Path, dataset_dir: Path) -> None:
+    converted_count = 0
+    skipped_count = 0
+
+    for log_file in iter_log_files(log_dir):
+        output_file = infer_dataset_output_file(log_file, dataset_dir)
+
+        if output_file is None:
+            skipped_count += 1
+            print(f"SKIP: {log_file.name} does not look like A001/B001/C001/unknown001.")
+            continue
+
+        restore_one(log_file, output_file)
+        converted_count += 1
+
+    print(f"DONE: converted {converted_count} log(s), skipped {skipped_count} file(s).")
+
+
+def main() -> None:
+    args = parse_args()
+    input_path = args.input_path
+    output_file = args.output_file
+    output_was_default = output_file == DEFAULT_OUTPUT
+
+    if not input_path.exists():
+        raise SystemExit(f"Input path not found: {input_path}")
+
+    if input_path.is_dir():
+        restore_directory(input_path, args.dataset_dir)
+        return
+
+    if output_was_default:
+        inferred_output = infer_dataset_output_file(input_path, args.dataset_dir)
+
+        if inferred_output is not None:
+            output_file = inferred_output
+
+    restore_one(input_path, output_file)
 
 
 if __name__ == "__main__":

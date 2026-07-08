@@ -4,6 +4,7 @@
 #include "app_camera_arducam.h"
 #include "app_camera_uart.h"
 #include "app_config.h"
+#include "app_host_link.h"
 #include "app_inference.h"
 #include "app_jpeg_decode.h"
 #include "app_protocol.h"
@@ -39,6 +40,9 @@ static void app_send_loop_start(uint16_t total_count);
 static void app_send_loop_index(uint16_t index);
 static void app_send_loop_result(uint16_t index, app_status_t status, app_capture_stage_t fail_stage);
 static void app_send_loop_end(uint16_t total_count, uint16_t ok_count, uint16_t fail_count);
+#if APP_HOST_LINK_RX_IRQ_DEBUG_ENABLED
+static void app_send_host_rx_irq_debug(uint32_t irq_count, uint8_t last_byte);
+#endif
 static void app_send_u32_decimal(uint32_t value);
 static uint8_t app_get_arducam_test_error_code(const app_arducam_test_result_t * p_result);
 static uint8_t app_get_arducam_frame_error_code(app_arducam_frame_status_t frame_status);
@@ -58,6 +62,9 @@ static app_status_t app_run_single_capture_inference(app_arducam_frame_t * p_fra
                                                      app_jpeg_decode_info_t * p_decode_info,
                                                      fruit_result_t * p_result,
                                                      app_capture_stage_t * p_fail_stage);
+#if APP_HOST_LINK_LOOPBACK_TEST_ENABLED && APP_HAS_FSP_UART_HOST
+static void app_run_host_link_loopback_test(void);
+#endif
 
 void app_main(void)
 {
@@ -71,8 +78,20 @@ void app_main(void)
         app_debug_led_error_loop(6U);
     }
 
+    app_host_link_init();
+
     (void) app_protocol_send_text("$DBG,UART,READY,SCI9,115200,8N1,TX=P109,RX=P110\r\n");
     (void) app_protocol_send_text("$DBG,SPI_CFG,CH0,100000HZ,MANUAL_CS=P001\r\n");
+#if APP_HAS_FSP_UART_HOST
+    (void) app_protocol_send_text("$DBG,HOSTLINK,READY,SCI2,115200,8N1,TX=P302,RX=P301\r\n");
+    (void) app_host_link_send_ready();
+#else
+    (void) app_protocol_send_text("$DBG,HOSTLINK,DISABLED,SET_APP_USE_FSP_UART_HOST=1\r\n");
+#endif
+
+#if APP_HOST_LINK_LOOPBACK_TEST_ENABLED && APP_HAS_FSP_UART_HOST
+    app_run_host_link_loopback_test();
+#endif
 
 #if APP_USE_ARDUCAM_B0067
 #if APP_ARDUCAM_POWER_ON_TEST_ENABLED
@@ -225,34 +244,91 @@ static void app_run_button_capture_mode(void)
 {
     app_status_t button_status = app_board_capture_button_init();
     uint32_t trigger_count = 0U;
+#if APP_HOST_LINK_RX_IRQ_DEBUG_ENABLED
+    uint32_t last_host_rx_irq_count = app_board_host_rx_irq_count();
+#endif
 
     (void) app_protocol_send_text("$DBG,BUTTON_MODE,ENTER\r\n");
 
     if (APP_STATUS_OK != button_status)
     {
         (void) app_protocol_send_text("$DBG,BUTTON,NOT_CONFIGURED,SET_APP_CAPTURE_BUTTON_PIN\r\n");
-        return;
     }
-
-    (void) app_protocol_send_text("$DBG,BUTTON,READY,PRESS_ONCE_TO_CAPTURE\r\n");
+    else
+    {
+        (void) app_protocol_send_text("$DBG,BUTTON,READY,PRESS_ONCE_TO_CAPTURE\r\n");
+    }
 
     while (1)
     {
-        if (!app_board_is_capture_button_pressed())
+        bool triggered_by_button = false;
+        bool triggered_by_host = false;
+#if APP_HOST_LINK_RX_IRQ_DEBUG_ENABLED
+        uint32_t host_rx_irq_count;
+#endif
+
+        /* 1. 优先看主控板有没有发命令过来 */
+        app_host_cmd_t host_cmd = app_host_link_poll();
+
+#if APP_HOST_LINK_RX_IRQ_DEBUG_ENABLED
+        host_rx_irq_count = app_board_host_rx_irq_count();
+        if (host_rx_irq_count != last_host_rx_irq_count)
         {
-            app_board_delay_ms(APP_CAPTURE_BUTTON_POLL_MS);
+            last_host_rx_irq_count = host_rx_irq_count;
+            app_send_host_rx_irq_debug(host_rx_irq_count, app_board_host_rx_last_byte());
+        }
+#endif
+
+        if (APP_HOST_CMD_TRIG == host_cmd)
+        {
+            (void) app_host_link_send_ack("TRIG");
+            (void) app_protocol_send_text("$DBG,HOSTLINK,RX,TRIG\r\n");
+            triggered_by_host = true;
+        }
+        else if (APP_HOST_CMD_PING == host_cmd)
+        {
+            (void) app_host_link_send_pong();
+            (void) app_protocol_send_text("$DBG,HOSTLINK,RX,PING\r\n");
+        }
+        else if (APP_HOST_CMD_UNKNOWN == host_cmd)
+        {
+            (void) app_host_link_send_error(APP_STATUS_FRAME_ERROR);
+            (void) app_protocol_send_text("$DBG,HOSTLINK,RX,UNKNOWN\r\n");
+        }
+        else
+        {
+            /* 没有命令，继续走按键路径 */
+        }
+
+        /* 2. 再看按键有没有按下 */
+        if ((!triggered_by_host) && (APP_STATUS_OK == button_status) && app_board_is_capture_button_pressed())
+        {
+            triggered_by_button = true;
+        }
+
+        if (triggered_by_button || triggered_by_host)
+        {
+            trigger_count++;
+            app_run_button_single_capture(trigger_count);
+
+            if (triggered_by_button)
+            {
+                /* 等按键释放，避免一次按住反复触发 */
+                while (app_board_is_capture_button_pressed())
+                {
+                    app_board_delay_ms(APP_CAPTURE_BUTTON_RELEASE_POLL_MS);
+                }
+
+                if (APP_STATUS_OK == button_status)
+                {
+                    (void) app_protocol_send_text("$DBG,BUTTON,READY,PRESS_ONCE_TO_CAPTURE\r\n");
+                }
+            }
+
             continue;
         }
 
-        trigger_count++;
-        app_run_button_single_capture(trigger_count);
-
-        while (app_board_is_capture_button_pressed())
-        {
-            app_board_delay_ms(APP_CAPTURE_BUTTON_RELEASE_POLL_MS);
-        }
-
-        (void) app_protocol_send_text("$DBG,BUTTON,READY,PRESS_ONCE_TO_CAPTURE\r\n");
+        app_board_delay_ms(APP_HOST_LINK_POLL_MS);
     }
 }
 
@@ -306,11 +382,13 @@ static void app_run_button_single_capture(uint32_t trigger_count)
     if (APP_STATUS_OK == status)
     {
         (void) app_protocol_send_result(&result);
+        (void) app_host_link_send_class_result(result.grade, result.score);
         (void) app_protocol_send_text("$DBG,BUTTON,CAPTURE,OK\r\n");
     }
     else
     {
         app_send_error_result(status);
+        (void) app_host_link_send_error(status);
         app_send_loop_result(1U, status, fail_stage);
     }
 }
@@ -350,6 +428,7 @@ static void app_run_power_on_single_capture_test(void)
         if (APP_STATUS_OK == status)
         {
             (void) app_protocol_send_result(&result);
+            (void) app_host_link_send_class_result(result.grade, result.score);
             app_board_debug_led_set(true);
             app_board_delay_ms(2000U);
             app_debug_led_result_loop(result.grade);
@@ -357,12 +436,14 @@ static void app_run_power_on_single_capture_test(void)
         else
         {
             app_send_error_result(status);
+            (void) app_host_link_send_error(status);
             app_debug_led_fast_error_loop(6U);
         }
     }
     else
     {
         app_send_error_result(capture_status);
+        (void) app_host_link_send_error(capture_status);
         app_debug_led_fast_error_loop(app_get_arducam_frame_error_code(frame.frame_status));
     }
 }
@@ -425,11 +506,13 @@ static void app_run_capture_loop_test(uint16_t total_count)
         if (APP_STATUS_OK == status)
         {
             (void) app_protocol_send_result(&result);
+            (void) app_host_link_send_class_result(result.grade, result.score);
             ok_count++;
         }
         else
         {
             app_send_error_result(status);
+            (void) app_host_link_send_error(status);
             fail_count++;
         }
 
@@ -635,23 +718,41 @@ static void app_send_jpeg_decode_loop_debug(const app_jpeg_decode_info_t * p_inf
 static void app_send_inference_debug(app_status_t status, const fruit_result_t * p_result)
 {
     char line[96];
+    char score_line[96];
     int written = 0;
+    const char * p_model_status;
 
     if (NULL == p_result)
     {
         return;
     }
 
+    p_model_status = (NULL != p_result->status) ? p_result->status : "NONE";
+
     written = snprintf(line,
                        sizeof(line),
-                       "$DBG,INF,%s,CLASS,%s,SCORE,%u\r\n",
+                       "$DBG,INF,%s,CLASS,%s,SCORE,%u,MODEL,%s\r\n",
                        app_status_to_text(status),
                        fruit_grade_to_text(p_result->grade),
-                       (unsigned int) p_result->score);
+                       (unsigned int) p_result->score,
+                       p_model_status);
 
     if ((written > 0) && ((uint32_t) written < sizeof(line)))
     {
         (void) app_protocol_send_text(line);
+    }
+
+    written = snprintf(score_line,
+                       sizeof(score_line),
+                       "$DBG,SCORE,A,%u,B,%u,C,%u,U,%u\r\n",
+                       (unsigned int) p_result->model_scores[0],
+                       (unsigned int) p_result->model_scores[1],
+                       (unsigned int) p_result->model_scores[2],
+                       (unsigned int) p_result->model_scores[3]);
+
+    if ((written > 0) && ((uint32_t) written < sizeof(score_line)))
+    {
+        (void) app_protocol_send_text(score_line);
     }
 }
 
@@ -763,6 +864,25 @@ static void app_send_loop_end(uint16_t total_count, uint16_t ok_count, uint16_t 
         (void) app_protocol_send_text(line);
     }
 }
+
+#if APP_HOST_LINK_RX_IRQ_DEBUG_ENABLED
+static void app_send_host_rx_irq_debug(uint32_t irq_count, uint8_t last_byte)
+{
+    char line[80];
+    int written = 0;
+
+    written = snprintf(line,
+                       sizeof(line),
+                       "$DBG,HOSTLINK,RX_IRQ,%lu,LAST,%02X\r\n",
+                       (unsigned long) irq_count,
+                       (unsigned int) last_byte);
+
+    if ((written > 0) && ((uint32_t) written < sizeof(line)))
+    {
+        (void) app_protocol_send_text(line);
+    }
+}
+#endif
 
 static void app_send_u32_decimal(uint32_t value)
 {
@@ -1048,3 +1168,96 @@ static void app_send_arducam_test_line(const char * p_name, app_status_t status,
         (void) app_protocol_send_text(line);
     }
 }
+
+#if APP_HOST_LINK_LOOPBACK_TEST_ENABLED && APP_HAS_FSP_UART_HOST
+/* SCI2 回环自测：要求把 P301 和 P302 用一根杜邦线短接。
+ * 推理板从 SCI2 发出去的字节会立刻从自己的 RX 收回来，
+ * 如果都能对上，说明 TX/RX/中断/回调全部正常。
+ *
+ * 测试结果通过 SCI9 调试口输出，不会污染 host 协议。 */
+static void app_run_host_link_loopback_test(void)
+{
+    static const char test_pattern[] = "LOOPBACK_TEST_123\r\n";
+    const uint32_t pattern_length = (uint32_t) (sizeof(test_pattern) - 1U);
+    uint8_t rx_byte = 0U;
+    uint32_t matched = 0U;
+    uint32_t mismatched = 0U;
+    char line[64];
+    int written;
+
+    (void) app_protocol_send_text("$DBG,LOOPBACK,BEGIN,SHORT_P301_TO_P302\r\n");
+
+    /* 先把 host 接收环形缓冲清空，避免之前残留的字节干扰本次比对。
+     * has_byte 为 true 时不断 read_byte 把字节丢掉。 */
+    while (app_board_host_has_byte())
+    {
+        (void) app_board_host_read_byte(&rx_byte, 0U);
+    }
+
+    /* 把测试串通过 host UART 发出去。短接时这些字节会立刻被自己的 RX 接到。 */
+    if (APP_STATUS_OK != app_board_host_write((const uint8_t *) test_pattern,
+                                              pattern_length,
+                                              APP_HOST_LINK_TX_TIMEOUT_MS))
+    {
+        (void) app_protocol_send_text("$DBG,LOOPBACK,END,FAIL,TX_ERROR\r\n");
+        return;
+    }
+
+    /* 给硬件一点时间把 RX FIFO 填满。115200 波特率发 19 字节大约 1.7 ms，
+     * 这里给 50 ms 余量足够。 */
+    app_board_delay_ms(50U);
+
+    /* 逐字节读回来比对。每个字节最多等 100 ms，总超时不会超过 2 秒。 */
+    for (uint32_t i = 0U; i < pattern_length; i++)
+    {
+        if (APP_STATUS_OK != app_board_host_read_byte(&rx_byte, 100U))
+        {
+            written = snprintf(line,
+                               sizeof(line),
+                               "$DBG,LOOPBACK,RX_TIMEOUT,IDX,%lu\r\n",
+                               (unsigned long) i);
+
+            if ((written > 0) && ((uint32_t) written < sizeof(line)))
+            {
+                (void) app_protocol_send_text(line);
+            }
+
+            mismatched++;
+            break;
+        }
+
+        if (rx_byte == (uint8_t) test_pattern[i])
+        {
+            matched++;
+        }
+        else
+        {
+            written = snprintf(line,
+                               sizeof(line),
+                               "$DBG,LOOPBACK,DIFF,IDX,%lu,EXP,%02X,GOT,%02X\r\n",
+                               (unsigned long) i,
+                               (unsigned int) (uint8_t) test_pattern[i],
+                               (unsigned int) rx_byte);
+
+            if ((written > 0) && ((uint32_t) written < sizeof(line)))
+            {
+                (void) app_protocol_send_text(line);
+            }
+
+            mismatched++;
+        }
+    }
+
+    written = snprintf(line,
+                       sizeof(line),
+                       "$DBG,LOOPBACK,END,MATCH,%lu,MISS,%lu,TOTAL,%lu\r\n",
+                       (unsigned long) matched,
+                       (unsigned long) mismatched,
+                       (unsigned long) pattern_length);
+
+    if ((written > 0) && ((uint32_t) written < sizeof(line)))
+    {
+        (void) app_protocol_send_text(line);
+    }
+}
+#endif

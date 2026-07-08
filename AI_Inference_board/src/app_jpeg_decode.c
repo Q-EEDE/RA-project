@@ -25,6 +25,7 @@ static int app_jpeg_output_func(JDEC * p_jdec, void * p_bitmap, JRECT * p_rect);
 static void app_jpeg_init_decode_info(app_jpeg_decode_info_t * p_info, uint32_t jpeg_length);
 static uint8_t app_jpeg_select_scale(uint16_t width, uint16_t height);
 static uint16_t app_jpeg_scaled_dimension(uint16_t dimension, uint8_t scale);
+static void app_jpeg_write_output_pixel(app_image_t * p_image, uint32_t dst_x, uint32_t dst_y, uint8_t r, uint8_t g, uint8_t b);
 static uint8_t app_jpeg_rgb_to_gray(uint8_t r, uint8_t g, uint8_t b);
 
 app_status_t app_jpeg_decode_to_gray96(const uint8_t * p_jpeg,
@@ -207,7 +208,6 @@ static int app_jpeg_output_func(JDEC * p_jdec, void * p_bitmap, JRECT * p_rect)
             uint8_t r;
             uint8_t g;
             uint8_t b;
-            uint8_t gray;
 
             dst_x = (src_x * APP_IMAGE_WIDTH) / (uint32_t) p_context->output_width;
 
@@ -222,9 +222,8 @@ static int app_jpeg_output_func(JDEC * p_jdec, void * p_bitmap, JRECT * p_rect)
             r = p_rgb[pixel_index];
             g = p_rgb[pixel_index + 1U];
             b = p_rgb[pixel_index + 2U];
-            gray = app_jpeg_rgb_to_gray(r, g, b);
 
-            p_context->p_image->pixels[(dst_y * APP_IMAGE_WIDTH) + dst_x] = gray;
+            app_jpeg_write_output_pixel(p_context->p_image, dst_x, dst_y, r, g, b);
         }
     }
 
@@ -251,6 +250,22 @@ static uint8_t app_jpeg_select_scale(uint16_t width, uint16_t height)
 static uint16_t app_jpeg_scaled_dimension(uint16_t dimension, uint8_t scale)
 {
     return (uint16_t) (dimension >> scale);
+}
+
+static void app_jpeg_write_output_pixel(app_image_t * p_image, uint32_t dst_x, uint32_t dst_y, uint8_t r, uint8_t g, uint8_t b)
+{
+    uint32_t dst_index = ((dst_y * APP_IMAGE_WIDTH) + dst_x) * APP_IMAGE_CHANNELS;
+
+    if (APP_IMAGE_CHANNELS >= 3U)
+    {
+        p_image->pixels[dst_index] = r;
+        p_image->pixels[dst_index + 1U] = g;
+        p_image->pixels[dst_index + 2U] = b;
+    }
+    else
+    {
+        p_image->pixels[dst_index] = app_jpeg_rgb_to_gray(r, g, b);
+    }
 }
 
 static uint8_t app_jpeg_rgb_to_gray(uint8_t r, uint8_t g, uint8_t b)

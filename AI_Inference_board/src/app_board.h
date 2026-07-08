@@ -23,6 +23,13 @@
 #define APP_HAS_FSP_UART_CONTROL    (0U)
 #endif
 
+#if APP_USE_FSP_UART_HOST && __has_include("r_uart_api.h")
+#include "r_uart_api.h"
+#define APP_HAS_FSP_UART_HOST       (1U)
+#else
+#define APP_HAS_FSP_UART_HOST       (0U)
+#endif
+
 #if APP_USE_FSP_SPI_CAMERA && __has_include("r_spi_api.h")
 #include "r_spi_api.h"
 #define APP_HAS_FSP_SPI_CAMERA      (1U)
@@ -43,6 +50,10 @@ void app_camera_uart_callback(uart_callback_args_t * p_args);
 
 #if APP_HAS_FSP_UART_CONTROL
 void app_control_uart_callback(uart_callback_args_t * p_args);
+#endif
+
+#if APP_HAS_FSP_UART_HOST
+void app_host_uart_callback(uart_callback_args_t * p_args);
 #endif
 
 #if APP_HAS_FSP_SPI_CAMERA
@@ -78,6 +89,12 @@ void app_board_debug_led_blink(uint8_t count, uint32_t on_ms, uint32_t off_ms);
 app_status_t app_board_camera_write(const uint8_t * p_data, uint32_t length, uint32_t timeout_ms);
 app_status_t app_board_camera_read_byte(uint8_t * p_byte, uint32_t timeout_ms);
 app_status_t app_board_control_write(const uint8_t * p_data, uint32_t length, uint32_t timeout_ms);
+
+app_status_t app_board_host_write(const uint8_t * p_data, uint32_t length, uint32_t timeout_ms);
+app_status_t app_board_host_read_byte(uint8_t * p_byte, uint32_t timeout_ms);
+bool app_board_host_has_byte(void);
+uint32_t app_board_host_rx_irq_count(void);
+uint8_t app_board_host_rx_last_byte(void);
 
 app_status_t app_board_camera_cs_set(bool high);
 app_status_t app_board_camera_spi_set_mode(uint8_t mode);

@@ -14,7 +14,7 @@
     <intAttribute key="ilg.gnumcueclipse.debug.gdbjtag.pyocd.gdbServerConnectMode" value="0"/>
     <stringAttribute key="ilg.gnumcueclipse.debug.gdbjtag.pyocd.gdbServerConnectionAddress" value=""/>
     <booleanAttribute key="ilg.gnumcueclipse.debug.gdbjtag.pyocd.gdbServerEnableSemihosting" value="true"/>
-    <stringAttribute key="ilg.gnumcueclipse.debug.gdbjtag.pyocd.gdbServerExecutable" value="C:\Users\EEDE1\AppData\Local\Programs\Python\Python310\Scripts\pyocd.exe"/>
+    <stringAttribute key="ilg.gnumcueclipse.debug.gdbjtag.pyocd.gdbServerExecutable" value="C:\Python310\Scripts\pyocd.exe"/>
     <intAttribute key="ilg.gnumcueclipse.debug.gdbjtag.pyocd.gdbServerFlashMode" value="2"/>
     <intAttribute key="ilg.gnumcueclipse.debug.gdbjtag.pyocd.gdbServerGdbPortNumber" value="3333"/>
     <booleanAttribute key="ilg.gnumcueclipse.debug.gdbjtag.pyocd.gdbServerHaltAtHardFault" value="true"/>
@@ -54,7 +54,7 @@
     <booleanAttribute key="org.eclipse.cdt.dsf.gdb.UPDATE_THREADLIST_ON_SUSPEND" value="false"/>
     <intAttribute key="org.eclipse.cdt.launch.ATTR_BUILD_BEFORE_LAUNCH_ATTR" value="2"/>
     <stringAttribute key="org.eclipse.cdt.launch.COREFILE_PATH" value=""/>
-    <stringAttribute key="org.eclipse.cdt.launch.PROGRAM_NAME" value="Debug\111.elf"/>
+    <stringAttribute key="org.eclipse.cdt.launch.PROGRAM_NAME" value="Debug/control_board.elf"/>
     <stringAttribute key="org.eclipse.cdt.launch.PROJECT_ATTR" value="control_board"/>
     <booleanAttribute key="org.eclipse.cdt.launch.PROJECT_BUILD_CONFIG_AUTO_ATTR" value="true"/>
     <stringAttribute key="org.eclipse.cdt.launch.PROJECT_BUILD_CONFIG_ID_ATTR" value="com.renesas.cdt.managedbuild.gnuarm.config.elf.debug.1513844856"/>
