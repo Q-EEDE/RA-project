@@ -1,0 +1,57 @@
+Dataset: 训练集
+Architecture: enhanced_cnn
+Model parameters: 117616
+Class order: 0=A, 1=B, 2=C, 3=UNKNOWN
+Input: 96x96x3 RGB, uint8 after TFLite quantization
+Preprocess: TJpgDec integer downscale approximation + board last-source-wins map + normalized ROI
+Split mode: manifest
+Samples kept: A=150, B=94, C=54
+Samples excluded for conflicting source labels: 0 (none)
+Stored augmented samples excluded by manifest: 0
+Samples: train ABC=250, validation ABC=48, synthetic UNKNOWN train=0
+Known source groups: train=15, validation=3
+Training-only augmentation copies: 3
+Fit samples after augmentation: 1000
+Class balance weighting: True
+Size weight strength: 0.000
+Best history val_accuracy: 0.8542
+Split guarantee: a fruit_id never appears in both training and validation.
+Keras train ABC accuracy: 0.8480 (212/250)
+Keras train ABC macro recall: 0.8535
+Keras train ABC recalls: A=0.9206, B=0.6625, C=0.9773
+Keras train ABC confusion rows=true A/B/C, cols=pred A/B/C/UNKNOWN:
+  116   0  10   0
+   17  53  10   0
+    1   0  43   0
+
+Uint8 train ABC accuracy: 0.8520 (213/250)
+Uint8 train ABC macro recall: 0.8561
+Uint8 train ABC recalls: A=0.9286, B=0.6625, C=0.9773
+Uint8 train ABC confusion rows=true A/B/C, cols=pred A/B/C/UNKNOWN:
+  117   0   9   0
+   18  53   9   0
+    1   0  43   0
+
+Uint8 all labeled ABC accuracy: 0.8523 (254/298)
+Uint8 all labeled ABC macro recall: 0.8559
+Uint8 all labeled ABC recalls: A=0.9267, B=0.6596, C=0.9815
+Uint8 all labeled ABC confusion rows=true A/B/C, cols=pred A/B/C/UNKNOWN:
+  139   2   9   0
+   22  62  10   0
+    1   0  53   0
+
+Keras validation ABC accuracy: 0.8542 (41/48)
+Keras validation ABC macro recall: 0.8532
+Keras validation ABC recalls: A=0.9167, B=0.6429, C=1.0000
+Keras validation ABC confusion rows=true A/B/C, cols=pred A/B/C/UNKNOWN:
+   22   2   0   0
+    4   9   1   0
+    0   0  10   0
+
+Uint8 validation ABC accuracy: 0.8542 (41/48)
+Uint8 validation ABC macro recall: 0.8532
+Uint8 validation ABC recalls: A=0.9167, B=0.6429, C=1.0000
+Uint8 validation ABC confusion rows=true A/B/C, cols=pred A/B/C/UNKNOWN:
+   22   2   0   0
+    4   9   1   0
+    0   0  10   0

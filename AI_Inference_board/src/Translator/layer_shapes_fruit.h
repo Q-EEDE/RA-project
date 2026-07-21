@@ -34,32 +34,36 @@
  
 TsOUT* dnn_compute_fruit(TsIN*, TsInt*);
  
-TsInt8 dnn_buffer1[36864];
-TsInt8 dnn_buffer2[28812];
+TsInt8 dnn_buffer1[110592];
+TsInt8 dnn_buffer2[46080];
 TsOUT StatefulPartitionedCall_0[4];
  
 struct shapes_fruit{
     TFloat tfl_quantize_shape[3];
-    TsInt sequential_conv2d_Relu_shape[16];
-    TsInt sequential_max_pooling2d_MaxPool_shape[11];
-    TsInt sequential_conv2d_1_Relu_shape[16];
-    TsInt sequential_max_pooling2d_1_MaxPool_shape[11];
-    TsInt sequential_max_pooling2d_1_MaxPool_tr_shape[5];
-    TsInt sequential_dense_MatMul_shape[7];
-    TsInt sequential_dense_1_MatMul_shape[7];
+    TsInt sequential_1_conv2d_Relu_shape[16];
+    TsInt sequential_1_max_pooling2d_MaxPool_shape[11];
+    TsInt sequential_1_conv2d_1_Relu_shape[16];
+    TsInt sequential_1_max_pooling2d_1_MaxPool_shape[11];
+    TsInt sequential_1_conv2d_2_Relu_shape[16];
+    TsInt sequential_1_max_pooling2d_2_MaxPool_shape[11];
+    TsInt sequential_1_max_pooling2d_2_MaxPool_tr_shape[5];
+    TsInt sequential_1_dense_MatMul_shape[7];
+    TsInt sequential_1_dense_1_MatMul_shape[7];
     TsInt StatefulPartitionedCall_01_shape;
     TFloat StatefulPartitionedCall_0_shape[3];
 };
  
 struct shapes_fruit layer_shapes_fruit ={
-    {27648,0.003921568859368563,-128},
-    {1,3,96,96,4,3,3,3,96,96,1,1,1,1,1,1},
-    {1,4,96,96,48,48,2,2,2,2,0},
-    {1,4,48,48,8,4,3,3,48,48,1,1,1,1,1,1},
-    {1,8,48,48,24,24,2,2,2,2,0},
-    {1,8,24,24,1},
-    {1,4608,4608,12,1,1,0},
-    {1,12,12,4,1,1,0},
+    {27648,0.003737024264410138,-128},
+    {1,3,96,96,12,3,3,3,96,96,1,1,1,1,1,1},
+    {1,12,96,96,48,48,2,2,2,2,0},
+    {1,12,48,48,20,12,3,3,48,48,1,1,1,1,1,1},
+    {1,20,48,48,24,24,2,2,2,2,0},
+    {1,20,24,24,24,20,3,3,24,24,1,1,1,1,1,1},
+    {1,24,24,24,12,12,2,2,2,2,0},
+    {1,24,12,12,1},
+    {1,3456,3456,32,1,1,0},
+    {1,32,32,4,1,1,0},
     4,
     {4,0.00390625,-128}
 };

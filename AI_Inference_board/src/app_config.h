@@ -73,6 +73,9 @@
 #define APP_INFERENCE_MIN_SCORE         (0U)
 #define APP_INFERENCE_MIN_MARGIN        (0U)
 #define APP_INFERENCE_UNKNOWN_OUTPUT_ENABLED (0U)
+/* Warm-light field mode: classify by the CNN's A/B/C outputs only.
+ * Red/green ROI markers remain visible but do not override the CNN result. */
+#define APP_INFERENCE_MODEL_ONLY_ABC_ENABLED (1U)
 
 /* Rule classifier:
  * A: mostly orange, little green, no obvious external black spot.
@@ -80,7 +83,7 @@
  * C: large external black/rotten area, including large brown/black rot near the stem.
  * The central radius is ignored for normal dark-defect counting, then checked again with
  * stricter brown/black-area rules so a normal stem is not counted as rot. */
-#define APP_RULE_CLASSIFIER_ENABLED     (1U)
+#define APP_RULE_CLASSIFIER_ENABLED     (0U)
 #define APP_RULE_MIN_FRUIT_PIXELS       (800U)
 #define APP_RULE_CENTER_IGNORE_RADIUS_PIXELS (14U)
 #define APP_RULE_CENTER_DEFECT_COMPONENT_PIXELS (24U)

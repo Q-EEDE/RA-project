@@ -165,6 +165,7 @@ app_status_t fruit_run_inference(const app_image_t * p_image, fruit_result_t * p
     TsOUT * p_output;
     const app_image_t * p_model_image;
     uint32_t best_index = 0U;
+    uint32_t decision_output_count = APP_INFERENCE_OUTPUT_CLASS_COUNT;
     TsOUT best_value = 0U;
     TsOUT second_value = 0U;
     uint8_t second_score;
@@ -199,8 +200,12 @@ app_status_t fruit_run_inference(const app_image_t * p_image, fruit_result_t * p
 
     best_value = p_output[0];
 
-    /* Use all model outputs: A, B, C, UNKNOWN. */
-    for (uint32_t i = 1U; i < APP_INFERENCE_OUTPUT_CLASS_COUNT; i++)
+    if ((0U != APP_INFERENCE_MODEL_ONLY_ABC_ENABLED) && (decision_output_count > 3U))
+    {
+        decision_output_count = 3U;
+    }
+
+    for (uint32_t i = 1U; i < decision_output_count; i++)
     {
         if (p_output[i] > best_value)
         {
@@ -224,9 +229,16 @@ app_status_t fruit_run_inference(const app_image_t * p_image, fruit_result_t * p
     p_result->status = region_applied ? "EAI_OK_ROI" : "EAI_OK_RAW";
     second_score = fruit_score_from_eai_output(second_value);
 
-    fruit_apply_eai_output_filter(p_result, second_score);
-    fruit_apply_safe_a_filter(p_model_image, p_result);
-    fruit_apply_unknown_output_policy(p_model_image, p_result);
+    if (0U != APP_INFERENCE_MODEL_ONLY_ABC_ENABLED)
+    {
+        p_result->status = region_applied ? "EAI_ABC_ROI" : "EAI_ABC_RAW";
+    }
+    else
+    {
+        fruit_apply_eai_output_filter(p_result, second_score);
+        fruit_apply_safe_a_filter(p_model_image, p_result);
+        fruit_apply_unknown_output_policy(p_model_image, p_result);
+    }
 
     return APP_STATUS_OK;
 #else

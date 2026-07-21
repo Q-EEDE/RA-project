@@ -35,27 +35,42 @@
 TsOUT* dnn_compute_fruit(TsIN* serving_default_input_1_0, TsInt *errorcode)
 {
   TsInt i;
+  TsInt channel;
+  TsInt channels;
+  TsInt pixels_per_channel;
   *errorcode = 0;
-  //preprocessing of the UINT8 input to INT8;
-  for(i = 0; i < layer_shapes_fruit.tfl_quantize_shape[0]; i++)
+
+  /* The application stores pixels as RGBRGB (HWC), while the generated
+   * convolution reads one complete channel at a time (CHW). Reorder into the
+   * existing DNN work buffer while converting UINT8 input to INT8. */
+  channels = (TsInt) layer_shapes_fruit.sequential_1_conv2d_Relu_shape[1];
+  pixels_per_channel = (TsInt) layer_shapes_fruit.tfl_quantize_shape[0] / channels;
+  for(i = 0; i < pixels_per_channel; i++)
   {
-    dnn_buffer1[i]  = (serving_default_input_1_0[i]+layer_shapes_fruit.tfl_quantize_shape[2]);
+    for(channel = 0; channel < channels; channel++)
+    {
+      dnn_buffer1[(channel * pixels_per_channel) + i] =
+        (TsInt8) (serving_default_input_1_0[(i * channels) + channel] +
+                  layer_shapes_fruit.tfl_quantize_shape[2]);
+    }
   }
-  convolution(dnn_buffer1,dnn_buffer2,sequential_conv2d_Relu_weights,sequential_conv2d_Relu_biases,sequential_conv2d_Relu_multiplier,sequential_conv2d_Relu_shift,sequential_conv2d_Relu_offset,dnn_buffer1,layer_shapes_fruit.sequential_conv2d_Relu_shape,errorcode);
-  pooling_without_pad(dnn_buffer1,dnn_buffer2,layer_shapes_fruit.sequential_max_pooling2d_MaxPool_shape,errorcode);
-  convolution(dnn_buffer2,dnn_buffer1,sequential_conv2d_1_Relu_weights,sequential_conv2d_1_Relu_biases,sequential_conv2d_1_Relu_multiplier,sequential_conv2d_1_Relu_shift,sequential_conv2d_1_Relu_offset,dnn_buffer2,layer_shapes_fruit.sequential_conv2d_1_Relu_shape,errorcode);
-  pooling_without_pad(dnn_buffer2,dnn_buffer1,layer_shapes_fruit.sequential_max_pooling2d_1_MaxPool_shape,errorcode);
+  convolution(dnn_buffer1,dnn_buffer2,sequential_1_conv2d_Relu_weights,sequential_1_conv2d_Relu_biases,sequential_1_conv2d_Relu_multiplier,sequential_1_conv2d_Relu_shift,sequential_1_conv2d_Relu_offset,dnn_buffer1,layer_shapes_fruit.sequential_1_conv2d_Relu_shape,errorcode);
+  pooling_without_pad(dnn_buffer1,dnn_buffer2,layer_shapes_fruit.sequential_1_max_pooling2d_MaxPool_shape,errorcode);
+  convolution(dnn_buffer2,dnn_buffer1,sequential_1_conv2d_1_Relu_weights,sequential_1_conv2d_1_Relu_biases,sequential_1_conv2d_1_Relu_multiplier,sequential_1_conv2d_1_Relu_shift,sequential_1_conv2d_1_Relu_offset,dnn_buffer2,layer_shapes_fruit.sequential_1_conv2d_1_Relu_shape,errorcode);
+  pooling_without_pad(dnn_buffer2,dnn_buffer1,layer_shapes_fruit.sequential_1_max_pooling2d_1_MaxPool_shape,errorcode);
+  convolution(dnn_buffer1,dnn_buffer2,sequential_1_conv2d_2_Relu_weights,sequential_1_conv2d_2_Relu_biases,sequential_1_conv2d_2_Relu_multiplier,sequential_1_conv2d_2_Relu_shift,sequential_1_conv2d_2_Relu_offset,dnn_buffer1,layer_shapes_fruit.sequential_1_conv2d_2_Relu_shape,errorcode);
+  pooling_without_pad(dnn_buffer1,dnn_buffer2,layer_shapes_fruit.sequential_1_max_pooling2d_2_MaxPool_shape,errorcode);
    
-  transpose4d(dnn_buffer1,dnn_buffer2,layer_shapes_fruit.sequential_max_pooling2d_1_MaxPool_tr_shape,errorcode);
+  transpose4d(dnn_buffer2,dnn_buffer1,layer_shapes_fruit.sequential_1_max_pooling2d_2_MaxPool_tr_shape,errorcode);
    
-  innerproduct(dnn_buffer2,sequential_dense_MatMul_weights,sequential_dense_MatMul_biases,sequential_dense_MatMul_multiplier,sequential_dense_MatMul_shift,sequential_dense_MatMul_offset,dnn_buffer1,layer_shapes_fruit.sequential_dense_MatMul_shape,errorcode);
+  innerproduct(dnn_buffer1,sequential_1_dense_MatMul_weights,sequential_1_dense_MatMul_biases,sequential_1_dense_MatMul_multiplier,sequential_1_dense_MatMul_shift,sequential_1_dense_MatMul_offset,dnn_buffer2,layer_shapes_fruit.sequential_1_dense_MatMul_shape,errorcode);
    
-  innerproduct(dnn_buffer1,sequential_dense_1_MatMul_weights,sequential_dense_1_MatMul_biases,sequential_dense_1_MatMul_multiplier,sequential_dense_1_MatMul_shift,sequential_dense_1_MatMul_offset,dnn_buffer2,layer_shapes_fruit.sequential_dense_1_MatMul_shape,errorcode);
-  softmax(dnn_buffer2,StatefulPartitionedCall_01_multiplier,StatefulPartitionedCall_01_offset,dnn_buffer2,layer_shapes_fruit.StatefulPartitionedCall_01_shape,errorcode);
+  innerproduct(dnn_buffer2,sequential_1_dense_1_MatMul_weights,sequential_1_dense_1_MatMul_biases,sequential_1_dense_1_MatMul_multiplier,sequential_1_dense_1_MatMul_shift,sequential_1_dense_1_MatMul_offset,dnn_buffer1,layer_shapes_fruit.sequential_1_dense_1_MatMul_shape,errorcode);
+  softmax(dnn_buffer1,StatefulPartitionedCall_01_multiplier,StatefulPartitionedCall_01_offset,dnn_buffer1,layer_shapes_fruit.StatefulPartitionedCall_01_shape,errorcode);
   //postprocessing of the INT8 output to UINT8;
   for(i = 0; i < layer_shapes_fruit.StatefulPartitionedCall_0_shape[0]; i++)
   {
-    StatefulPartitionedCall_0[i]  = (dnn_buffer2[i]-layer_shapes_fruit.StatefulPartitionedCall_0_shape[2]);
+    StatefulPartitionedCall_0[i]  = (dnn_buffer1[i]-layer_shapes_fruit.StatefulPartitionedCall_0_shape[2]);
   }
   return(StatefulPartitionedCall_0);
 }
